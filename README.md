@@ -17,60 +17,49 @@ La particularidad del proyecto no está solo en el modelo de datos, sino en que 
 **1. Clonar el repositorio**
 
 ```bash
-git clone https://github.com/usuario/CoworkingDB.git
-cd CoworkingDB
+git clone https://github.com/Jonatan-17/coworking-db.git
+cd coworking-db/CoworkingDB
 ```
 
-**2. Crear la base de datos**
+**2. Ejecutar el script maestro**
 
-Conectarse al servidor MySQL con un usuario con privilegios administrativos y ejecutar:
+Todo el proyecto se instala desde un único archivo: `CoworkingDB/0_script_maestro/00_instalar_todo.sql`. Este script crea la base `coworking_db`, las tablas, inserta los datos de prueba y registra todos los objetos programables (triggers, funciones, procedimientos, eventos y vistas) en el orden correcto. Al final muestra una verificación automática de los conteos.
+
+Desde la carpeta `CoworkingDB/`, con el cliente de MySQL:
+
+```bash
+mysql -u root -p < 0_script_maestro/00_instalar_todo.sql
+```
+
+> El script usa `SOURCE` para llamar a los demás archivos, así que debe ejecutarse desde la carpeta `CoworkingDB/`. Si prefieres DBeaver, ejecuta los archivos de cada carpeta en orden (01 → 09), cada uno como **script completo con Alt + X**, porque los triggers, funciones y procedimientos usan bloques `DELIMITER`.
+
+**3. Verificar**
 
 ```sql
-CREATE DATABASE coworkingdb
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
+SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'coworking_db';
+SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema = 'coworking_db';
+SELECT COUNT(*) FROM information_schema.events WHERE event_schema = 'coworking_db';
+SELECT ROUTINE_TYPE, COUNT(*) FROM information_schema.routines WHERE routine_schema = 'coworking_db' GROUP BY ROUTINE_TYPE;
+SELECT COUNT(*) FROM information_schema.views WHERE table_schema = 'coworking_db';
 ```
 
-**3. Ejecutar el script maestro**
-
-Todo el proyecto se instala desde un único archivo: `scripts/00_instalar_todo.sql`. Este script crea las tablas, inserta los datos de prueba y registra todos los objetos programables (triggers, funciones, procedimientos, eventos y vistas) en el orden correcto.
-
-Abrir el archivo en DBeaver, con la conexión apuntando a `coworkingdb`, y ejecutarlo.
-
-> Importante: debe ejecutarse como **script completo, con Alt + X**. Si se usa Ctrl + Enter (ejecución de sentencia individual), el motor no procesará bien los bloques `DELIMITER` que usan los triggers, funciones y procedimientos, y la instalación quedará a medias.
-
-**4. Verificar**
-
-```sql
-SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'coworkingdb';
-SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema = 'coworkingdb';
-SELECT COUNT(*) FROM information_schema.events WHERE event_schema = 'coworkingdb';
-SELECT ROUTINE_TYPE, COUNT(*) FROM information_schema.routines WHERE routine_schema = 'coworkingdb' GROUP BY ROUTINE_TYPE;
-SELECT COUNT(*) FROM information_schema.views WHERE table_schema = 'coworkingdb';
-```
-
-Los conteos deberían coincidir con lo que se documenta más abajo: 15 tablas, 20 triggers, 20 eventos, 20 funciones, 20 procedimientos y 20 vistas.
+Los conteos deberían ser: 15 tablas, 20 triggers, 20 eventos, 20 funciones, 20 procedimientos y 20 vistas.
 
 ## Estructura del repositorio
+
+```
 CoworkingDB/
-├── README.md
-├── scripts/
-│   ├── 00_instalar_todo.sql
-│   ├── 01_tablas.sql
-│   ├── 02_datos_prueba.sql
-│   ├── 03_triggers.sql
-│   ├── 04_funciones.sql
-│   ├── 05_procedimientos.sql
-│   ├── 06_eventos.sql
-│   ├── 07_vistas.sql
-│   └── 08_roles_permisos.sql
-├── consultas/
-│   ├── consultas_basicas.sql
-│   ├── consultas_intermedias.sql
-│   └── consultas_avanzadas.sql
-└── documentacion/
-├── diagrama_er.png
-└── catalogo_objetos.md
+├── 0_script_maestro/      00_instalar_todo.sql (instala todo en orden)
+├── 01_DDL_Estructura/     Base de datos, tablas, llaves foráneas e índices
+├── 02_DML_Datos/          Datos de catálogo y de prueba
+├── 03_Consultas/          Consultas básicas, intermedias y avanzadas
+├── 04_Triggers/           20 triggers
+├── 05_Eventos/            20 eventos programados
+├── 06_Funciones/          20 funciones
+├── 07_Procedimientos/     20 procedimientos almacenados
+├── 08_Vistas/             20 vistas
+└── 09_Roles_Seguridad/    Roles y permisos
+```
 
 ## Estructura de la base de datos
 
@@ -118,7 +107,7 @@ CoworkingDB/
 
 ## Automatización implementada
 
-En total son 100 objetos programables: 20 triggers, 20 eventos, 20 funciones, 20 procedimientos y 20 vistas. El detalle completo de cada uno está en `documentacion/catalogo_objetos.md` y en los scripts correspondientes dentro de `scripts/`. Acá algunos ejemplos representativos de cada tipo.
+En total son 100 objetos programables: 20 triggers, 20 eventos, 20 funciones, 20 procedimientos y 20 vistas. El detalle completo de cada uno está en los scripts de las carpetas `04_Triggers/` a `08_Vistas/`. Acá algunos ejemplos representativos de cada tipo.
 
 ### Triggers (20)
 
@@ -239,9 +228,9 @@ El acceso está controlado con roles nativos de MySQL, siguiendo el principio de
 
 ```sql
 CREATE ROLE rol_recepcionista;
-GRANT SELECT, INSERT, UPDATE ON coworkingdb.reservas TO rol_recepcionista;
-GRANT SELECT, INSERT, UPDATE ON coworkingdb.accesos TO rol_recepcionista;
-GRANT SELECT, INSERT, UPDATE ON coworkingdb.usuarios TO rol_recepcionista;
+GRANT SELECT, INSERT, UPDATE ON coworking_db.reservas TO rol_recepcionista;
+GRANT SELECT, INSERT, UPDATE ON coworking_db.accesos TO rol_recepcionista;
+GRANT SELECT, INSERT, UPDATE ON coworking_db.usuarios TO rol_recepcionista;
 ```
 
 Para pruebas y evaluación, el script maestro crea un usuario con rol de administrador:
@@ -288,12 +277,12 @@ Panel resumen de un usuario:
 SELECT * FROM vw_dashboard_usuario WHERE usuario_id = 5;
 ```
 
-Más ejemplos, organizados por nivel de dificultad (100 consultas en total), están en la carpeta `consultas/`.
+Más ejemplos, organizados por nivel de dificultad (100 consultas en total), están en la carpeta `CoworkingDB/03_Consultas/`.
 
 ## Solución de problemas comunes
 
 **Error de sintaxis cerca de `DELIMITER`**
-Se está ejecutando el script sentencia por sentencia. Solución: seleccionar todo el archivo y ejecutar con Alt + X.
+Se está ejecutando el script sentencia por sentencia. Solución: ejecutar el archivo completo (en DBeaver, con Alt + X) o usar el cliente `mysql` como se indica en la instalación.
 
 **Los eventos no se disparan**
 El Event Scheduler está apagado. Solución: `SET GLOBAL event_scheduler = ON;`
@@ -304,6 +293,8 @@ La versión de MySQL es inferior a 8.0, y `CREATE ROLE` no existe en versiones a
 **Los conteos de verificación no cuadran**
 Probablemente el script se corrió más de una vez sobre una base ya poblada. Lo más simple es volver a crear la base de datos desde cero y ejecutar el script maestro una sola vez, completo.
 
-## Autor JONATAN DAVID SARMIENTO
+## Autor
+
+Jonatan David Sarmiento Sierra — [GitHub](https://github.com/Jonatan-17) · [LinkedIn](https://www.linkedin.com/in/jonatan-sarmiento-16a206366/)
 
 Proyecto desarrollado como trabajo final de la asignatura de Bases de Datos, enfocado en el diseño de un modelo relacional y en la automatización de reglas de negocio directamente en MySQL.
